@@ -1,0 +1,8 @@
+mapColoring
+maps/*.dot
+maps/*.gif
+
+# The assignment's write-up and the submission zip that carried it.
+attic/
+
+.DS_Store
