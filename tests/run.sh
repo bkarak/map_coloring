@@ -50,17 +50,29 @@ done
 
 check "no arguments prints the help" "help.txt"
 
+exit_status() {
+	name=$1
+	want=$2
+	file=$3
+	"$BIN" "$file" > /dev/null 2>&1
+	got=$?
+	if [ "$got" -eq "$want" ]; then
+		echo "ok   $name"
+		pass=$((pass + 1))
+	else
+		echo "FAIL $name (exit $got, wanted $want)"
+		fail=$((fail + 1))
+	fi
+}
+
 # A missing data file is reported and exits 255; anything else means the error
 # path has been broken.
-"$BIN" "$ROOT/maps/does-not-exist" > /dev/null 2>&1
-status=$?
-if [ "$status" -eq 255 ]; then
-	echo "ok   missing file exits 255"
-	pass=$((pass + 1))
-else
-	echo "FAIL missing file exits 255 (got $status)"
-	fail=$((fail + 1))
-fi
+exit_status "missing file exits 255" 255 "$ROOT/maps/does-not-exist"
+
+# A file whose first line is not a vertex count is rejected. Before parse_file
+# checked what fscanf returned, number_of_nodes was left uninitialised here and
+# the program went into a 2^garbage enumeration that never came back.
+exit_status "malformed header exits 255" 255 "$DIR/malformed.map"
 
 echo
 echo "$pass passed, $fail failed"

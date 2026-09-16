@@ -51,13 +51,16 @@ int parse_file(char *filename)
       if(fp == NULL){
             return FALSE;
       }
-      fscanf(fp,"%d",&number_of_nodes);
+      if(fscanf(fp,"%d",&number_of_nodes) != 1){
+            fclose(fp);
+            return FALSE;
+      }
       while(!feof(fp)){
             int from,to;
 
             from = 0;
             to = 0;
-            fscanf(fp,"%d %d\n",&from,&to);
+            if(fscanf(fp,"%d %d\n",&from,&to) != 2){ break; }
             if(root_node == NULL){
                   root_node = add_node(NULL,from,to);
             }else{

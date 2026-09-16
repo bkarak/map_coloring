@@ -60,9 +60,10 @@ counting from 1:
 
 Edges are undirected and duplicates are dropped, so listing an edge in both directions is
 harmless; `maps/map.5` does exactly that, and the six edges above are what the program ends up
-with. Whitespace is whitespace, so several pairs may share a line. The input is otherwise
-trusted: a vertex number above the declared count indexes past the end of the vertex array
-rather than being rejected.
+with. Whitespace is whitespace, so several pairs may share a line, and reading stops at the
+first line that is not a pair of numbers. A file whose first line is not a vertex count is
+rejected outright. The input is otherwise trusted: a vertex number above the declared count
+indexes past the end of the vertex array rather than being rejected.
 
 ![The graph in maps/map.5](docs/graph.png)
 
@@ -194,9 +195,9 @@ The original build was `original/mapColoring.dev`, a Dev-C++ project naming
 machine, in 2002. Replacing it left a choice between silencing the warnings a real build turns
 on and clearing them, and clearing them is what happened.
 
-**Six changes, five of them deletions.** None touches a value the program computes, and
-`tests/expected/` is the proof: the recordings were taken from the sources as submitted and the
-current binary still matches them byte for byte.
+**Seven changes.** None of them alters an answer, and `tests/expected/` is the proof rather
+than the claim: the recordings were taken from the sources as submitted, and the current binary
+still matches them byte for byte.
 
 | Where | What |
 | --- | --- |
@@ -206,9 +207,18 @@ current binary still matches them byte for byte.
 | `calc.c` | `get_best_solution` declared `int *tmp` and never used it. |
 | `vector_solutions.c` | `find_max_solution` counted the position of each set in `tmp_idx` and stored it in `max_idx`, and nothing read `max_idx`. Both gone; the function returns the set itself, which is all the caller wanted. |
 | `vector_solutions.c` | `free_solution` walked the list from an **uninitialised** pointer: it is a copy of `free_list` whose `r_node = root_node;` came out as `r_node = r_node->next;`. Fixed rather than deleted. |
+| `main.c` | `parse_file` ignored what `fscanf` returned, twice. gcc on glibc is the one that says so, and it was right — see below. |
 
-That last one was a real bug, and the reason it never bit is that nothing calls
-`free_solution` — nor `char_to_solution`, `print_all_solution`, `print_node_array`, `print_list`
+**The `fscanf` one had teeth.** With the vertex count unread, `number_of_nodes` kept whatever
+was on the stack and the program went into a 2<sup>garbage</sup> enumeration that never came
+back; a file whose first line is not a number now exits 255 in the time it takes to open it.
+Inside the loop, a line that is not a pair of numbers ends the parse instead of adding an edge
+between vertex 0 and vertex 0, which `calculate_function` would have read as `node_array[-1]`.
+Neither path is reachable from the four graphs here, which is why the output is unchanged, and
+`make test` covers the header case now.
+
+The `free_solution` fix was a real bug too, and the reason it never bit is that nothing calls
+it — nor `char_to_solution`, `print_all_solution`, `print_node_array`, `print_list`
 or `print_node`. The program allocates a copy of every independent set it finds and frees none
 of them; it prints an answer and exits. That is left as it is, and the sanitiser job in CI runs
 with leak checking off for exactly that reason. It is clean under
@@ -226,7 +236,7 @@ src/            the sources; see What changed in 2026 for the six edits since 20
   vector.c          the edge list
   vector_solutions.c  the list of independent sets and the operations on it
 maps/           the four graphs, plus convert.pl and the Makefile that render them
-tests/          run.sh and the recorded output it compares against
+tests/          run.sh, the recorded output it compares against, and one malformed input
 docs/           the example graph as it was drawn for the write-up (graph.bmp, and
                 graph_cut.bmp cropped; graph.png is that crop converted so it
                 renders here), and 20minutes.txt
