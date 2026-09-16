@@ -29,4 +29,4 @@ char **solution_to_char(SOLUTION *root_node);
 SOLUTION *char_to_solution(char **char_sol,int no_nodes);
 SOLUTION *create_solution_no_copy(char *sol,SOLUTION *previous);
 
-#endif _VECTOR_SOLUTIONS_H_
+#endif /* _VECTOR_SOLUTIONS_H_ */

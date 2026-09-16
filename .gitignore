@@ -1,4 +1,8 @@
+# Build output
+build/
 mapColoring
+
+# Rendered by `make graphs`
 maps/*.dot
 maps/*.gif
 

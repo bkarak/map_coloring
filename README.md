@@ -7,24 +7,39 @@ at both ends; a minimum colouring uses as few labels as it can. The program find
 a colouring by a greedy rule, which is the default, and the minimum colouring by exhaustive
 search, under `-best`.
 
-Nothing in `src/` has been changed. What is new here is the top-level `Makefile`, since the
-original build was a Dev-C++ project file (`original/mapColoring.dev`) pointing at
-`D:\Projects\mapColoring`, and a PNG copy of the figure below, since GitHub will not render a
-1990s bitmap.
+Nothing about the algorithm has changed. What the 2026 pass did was replace the Dev-C++ project
+with a real build, clear the compiler warnings and add a test that pins the output; the details
+are in [What changed in 2026](#what-changed-in-2026). The files as they were submitted are the
+first commit here, so `git show $(git rev-list --max-parents=0 HEAD):src/calc.c` returns any of
+them.
 
 ## Build and run
 
+C99 and a libm; no other dependency, and the Makefile is portable make.
+
 ```sh
-make
+make            # ./mapColoring, built warning-free under -Wall -Wextra -Wstrict-prototypes
+make test       # run the supplied graphs and compare against tests/expected/
 ./mapColoring maps/map.12
 ./mapColoring maps/map.12 -best
 ```
 
-`cc -O2` takes the 2002 sources as they are. The only warnings are the three include guards
-written `#endif _CALC_H_`, with the name left bare after the directive; legal enough for the
-compiler this was written on, an extra-tokens warning on a current one.
+Objects land in `build/` with their header dependencies generated, so a touched header rebuilds
+what includes it. Everything is overridable from the command line, and `make install` honours
+the usual variables:
 
-The flag is read only when it is the *only* argument after the file name, so
+```sh
+make CC=gcc OPT=-O0
+make install DESTDIR=/tmp/stage PREFIX=/usr/local
+make help       # the full list of targets and variables
+```
+
+`make test` runs `tests/run.sh`, which puts the three graphs it can finish through both searches
+and diffs the result against recorded output, and checks the help text and the exit status for a
+missing file. Those recordings came off the sources **as submitted**, which is what makes them
+worth having: they are the evidence that the 2026 pass changed nothing a user can see.
+
+The `-best` flag is read only when it is the *only* argument after the file name, so
 `./mapColoring maps/map.12 -best extra` runs the greedy search, and so does any spelling other
 than `-best`. There is no error for an unknown option.
 
@@ -157,33 +172,67 @@ Solving problem ... please wait
 
 and then runs until something stops it. The first stage is 2<sup>n</sup>, with no way out.
 
-Measured on an Apple M4 Max with `cc -O2`, over cycle graphs so that the size is the only thing
-changing: 0.08 s at 24 vertices, 1.42 s at 28, 20.25 s at 32, which is four times the work for
-every two vertices added, as it should be. Carrying that on, 109 vertices is 2<sup>77</sup> times the
+Measured on an Apple M4 Max, over cycle graphs so that the size is the only thing changing:
+0.07 s at 24 vertices, 1.34 s at 28, 18.91 s at 32, which is four times the work for every two
+vertices added, as it should be. Carrying that on, 109 vertices is 2<sup>77</sup> times the
 32-vertex run, or around 10<sup>17</sup> years. The universe is about 1.4 × 10<sup>10</sup> years
 old.
 
 `docs/20minutes.txt` is a one-line file from the time, containing the number `89132660` and
-nothing else. Twenty minutes of the 2002 machine, at a guess, and roughly what it managed,
-which puts the same wall about twenty-six vertices away instead of thirty-two.
+nothing else. Twenty minutes of the 2002 machine, at a guess, and roughly what it got through.
+That is 2<sup>26.4</sup>, so twenty-six vertices was about as far as an afternoon's patience
+went. The machine above does the same 2<sup>26</sup> in 0.29 s, and twenty minutes of it would
+reach thirty-eight. Twenty-four years of hardware bought twelve vertices.
 
 The exhaustive search on top of that is cheap by comparison but not free: `-best` on `map.12`
-takes 0.08 s against a greedy run too short to measure, over 154 independent sets.
+takes 0.07 s against a greedy run too short to measure, over 154 independent sets.
+
+## What changed in 2026
+
+The original build was `original/mapColoring.dev`, a Dev-C++ project naming
+`D:\Projects\mapColoring` and an icon at `D:\DEVC++\Icon\MAINICON.ICO`. It built on one
+machine, in 2002. Replacing it left a choice between silencing the warnings a real build turns
+on and clearing them, and clearing them is what happened.
+
+**Six changes, five of them deletions.** None touches a value the program computes, and
+`tests/expected/` is the proof: the recordings were taken from the sources as submitted and the
+current binary still matches them byte for byte.
+
+| Where | What |
+| --- | --- |
+| `calc.h`, `vector.h`, `vector_solutions.h` | `#endif _CALC_H_` and friends, with the guard name left bare after the directive. Now a comment. |
+| `calc.h`, `calc.c` | `print_node_array()` declared with empty parentheses, which is not a prototype and is gone from C23. Now `(void)`. |
+| `main.c` | `parse_file` kept `add_node`'s return value in `last_node` and never read it. |
+| `calc.c` | `get_best_solution` declared `int *tmp` and never used it. |
+| `vector_solutions.c` | `find_max_solution` counted the position of each set in `tmp_idx` and stored it in `max_idx`, and nothing read `max_idx`. Both gone; the function returns the set itself, which is all the caller wanted. |
+| `vector_solutions.c` | `free_solution` walked the list from an **uninitialised** pointer: it is a copy of `free_list` whose `r_node = root_node;` came out as `r_node = r_node->next;`. Fixed rather than deleted. |
+
+That last one was a real bug, and the reason it never bit is that nothing calls
+`free_solution` — nor `char_to_solution`, `print_all_solution`, `print_node_array`, `print_list`
+or `print_node`. The program allocates a copy of every independent set it finds and frees none
+of them; it prints an answer and exits. That is left as it is, and the sanitiser job in CI runs
+with leak checking off for exactly that reason. It is clean under
+`-fsanitize=address,undefined`.
+
+**What was not touched:** the algorithm, the spelling, the brace style, the six-space
+indentation, the `printf` wording, and the CRLF line endings the files were saved with in 2002.
 
 ## Layout
 
 ```
-src/            the 2002 sources, unchanged
+src/            the sources; see What changed in 2026 for the six edits since 2002
   main.c            argument handling, file parsing, output
   calc.c            subset enumeration, the greedy search, the exhaustive search
   vector.c          the edge list
   vector_solutions.c  the list of independent sets and the operations on it
 maps/           the four graphs, plus convert.pl and the Makefile that render them
+tests/          run.sh and the recorded output it compares against
 docs/           the example graph as it was drawn for the write-up (graph.bmp, and
                 graph_cut.bmp cropped; graph.png is that crop converted so it
                 renders here), and 20minutes.txt
 original/       the Dev-C++ project file, its resource script and the 2002 Win32 binary
-Makefile        added here; the original build was original/mapColoring.dev
+Makefile        added in 2026; the original build was original/mapColoring.dev
+.github/        CI: gcc and clang on Linux, clang on macOS, plus a sanitiser run
 ```
 
 The assignment's write-up was a Word document and is not in this repository.

@@ -46,7 +46,6 @@ void print_detail(SOLUTION *root_node)
 int parse_file(char *filename)
 {
       FILE *fp;
-      NODE *last_node;
 
       fp = fopen(filename,"r");
       if(fp == NULL){
@@ -63,7 +62,7 @@ int parse_file(char *filename)
                   root_node = add_node(NULL,from,to);
             }else{
                   if(exists_in_list(from,to,root_node) == 0){
-                        last_node = add_node(root_node,from,to);
+                        add_node(root_node,from,to);
                   }
             }
       }

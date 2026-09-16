@@ -13,7 +13,7 @@ typedef struct solution_int SOLUTION_INT;
 
 void change_bool(int pos);
 int init_problem(int number_of_nodes,NODE *root_node);
-void print_node_array();
+void print_node_array(void);
 int calculate_function(NODE *root_node);
 int solve(void);
 double calculate_nodes(void);
@@ -31,4 +31,4 @@ char *blend_char(int *items,int item_no);
 int is_solution(char *solution);
 void print_best_detail(void);
 
-#endif _CALC_H_
+#endif /* _CALC_H_ */

@@ -1,0 +1,9 @@
+loading data ... done
+Number of nodes: 5
+Number of combinations: 32
+Solving problem ... please wait
+Brute force selected
+Colors: 2
+
+Nodes with common color: 1 5 
+Nodes with common color: 2 3 4 

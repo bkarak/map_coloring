@@ -1,0 +1,5 @@
+Graph Coloring problem solver by Vassileios Karakoidas (P/95053)
+usage: mapColoring.exe <data-file> [options]
+available options:
+	-greedy	display solution greedy search (default)(fastest)
+	-best	display best solution (brute force)(slowest)

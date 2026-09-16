@@ -34,7 +34,7 @@ double calculate_nodes(void)
       return pow((double)2,(double)no_of_nodes);
 }
 
-void print_node_array()
+void print_node_array(void)
 {
       print_node_data(node_array,no_of_nodes);
 }
@@ -180,7 +180,7 @@ SOLUTION *get_solution(void)
 /* full search */
 void get_best_solution(void)
 {
-      int counter,*tmp;
+      int counter;
 
       node_counter = count_nodes(v_solution);
       solutions_list = solution_to_char(v_solution);

@@ -161,24 +161,20 @@ int is_perfect_match(SOLUTION *root_node,int size)
 SOLUTION *find_max_solution(SOLUTION *root_sol,int size)
 {
       SOLUTION *r_node,*result;
-      int max_idx,max_nodes,counter,tmp_idx,tmp_nodes;
+      int max_nodes,counter,tmp_nodes;
 
       r_node = root_sol;
       result = root_sol;
-      max_idx = 0;
       max_nodes = 0;
-      tmp_idx = 0;
       tmp_nodes = 0;
       while(1){
             for(counter = 0;counter < size;counter++){
                   if(r_node->solution[counter] == 1){ tmp_nodes++; }
             }
             if(tmp_nodes > max_nodes){
-                  max_idx = tmp_idx;
                   max_nodes = tmp_nodes;
                   result = r_node;
             }
-            tmp_idx++;
             tmp_nodes = 0;
             if(r_node->next == NULL){ break; }
             r_node = r_node->next;
@@ -246,7 +242,7 @@ void free_solution(SOLUTION *root_node)
 {
       SOLUTION *r_node,*tmp_node;
 
-      r_node = r_node->next;
+      r_node = root_node;
       while(1){
             if(r_node->next == NULL){
                   free(r_node);
