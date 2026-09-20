@@ -94,16 +94,98 @@ One line per colour, listing the vertices that carry it. `-best` prints the same
 a `Colors:` heading, and for this map it also finds three, though it splits them differently:
 `1 3 6 7 8 9 12`, `2 10`, `4 5 11`.
 
+## The equation behind it
+
+The assignment was handed in with a write-up, in Greek, and it sets the problem out before any
+of the code does. A graph is a pair of finite sets G = (V, E): V holds the vertices, E the
+edges, and an edge stands for a relation between the two things its ends represent — the example
+it opens with is countries, and an edge between two of them means they share a border.
+Colouring it means giving every vertex a label such that no vertex carries the same label as a
+neighbour.
+
+The method is the part worth keeping. Rather than reason about colours, the write-up turns the
+graph into a Boolean equation and solves that. Every vertex becomes a variable, every edge
+between i and j becomes the clause `(xi' OR xj')` — at most one end of an edge may be in — and
+the equation is all of those clauses ANDed together. Take three vertices joined pairwise:
+
+```
+f(x1, x2, x3) = (x1' OR x2') AND (x2' OR x3') AND (x3' OR x1')
+```
+
+That is satisfied at `100`, `010` and `001` and nowhere else, so no two of the three can share a
+colour, which is what you would expect of a triangle. A satisfying assignment is exactly a set
+of vertices with no edge inside it — an independent set, a group that may all take the same
+colour — and finding them all means trying all 2<sup>n</sup> assignments. There is no shortcut
+in the write-up and there is none in the program; the whole of it is in that sentence.
+
+`maps/map.5` is the worked example. Its equation is
+
+```
+f(x1, x2, x3, x4, x5) = (x1' OR x2') AND (x1' OR x3') AND (x1' OR x4')
+                    AND (x4' OR x5') AND (x5' OR x2') AND (x5' OR x3')
+```
+
+and it has ten solutions: `10000`, `10001`, `01000`, `01010`, `01110`, `01100`, `00100`,
+`00110`, `00010`, `00001`. Those ten are the independent-set count for that row of the table
+below. The all-zero assignment satisfies the equation too and is thrown away, since colouring
+nothing is not a colour.
+
+With the ten in hand, the question becomes which of them to pick, and the write-up gives two
+answers — an exhaustive one and a greedy one:
+
+```
+Algorithm GraphColoring
+INPUT:  S, the solutions of the equation; N, how many there are
+OUTPUT: L, the colouring with the fewest colours
+
+for I = 1 to N - 1
+    recursive_solution(I, new_list(I), 1)
+
+routine recursive_solution(C, L_rs, L_c)
+    if is_solution(L_rs) then
+        if L_n > L_c then L = L_rs
+        return
+    for k = C + 1 to N
+        if has_no_common(L_rs, S(k)) then
+            recursive_solution(k, append_list(L_rs, L_c, k), L_c + 1)
+
+Algorithm GraphColoring_Greedy
+OUTPUT: L, a colouring
+
+L = new_list(null)
+while not is_solution(L)
+    K = find_max(L, S)
+    L = append_list(L, K)
+```
+
+`is_solution` asks whether the sets chosen so far cover every vertex, `has_no_common` whether a
+candidate overlaps them, and `find_max` hands back the largest one that does not. Those names
+are still in the C, twenty-four years later: `recursive_solve`, `is_solution`, `append_list`,
+`find_max_solution`. The pseudocode was written first and the program was typed from it.
+
+Two slips in the listing are the document's own. The greedy loop is written
+`While( is_solution(L) )` where it has to be *while not*, and that one is corrected above
+because reproducing it would just read as an error. The exhaustive loop's `for I = 1 to N - 1`
+is off by one against `get_best_solution`, which runs `0` to `N - 1` over a zero-based list —
+1 to N — and that one is left as the document has it. The C is what was built; the listing is
+what was written first.
+
 ## How it works
 
 Three stages, and the first one is the expensive one.
 
 **Every subset of the vertices is generated and tested.** `make_combinations` in
-[src/calc.c](src/calc.c) walks the subsets by flipping one vertex in or out at a time, and
-`calculate_function` accepts a subset when no edge has both of its ends inside it: an
-independent set, a set of vertices that may all share a colour. Every independent set it finds
-is copied into a linked list. The "Number of combinations" line reports 2<sup>n</sup> and the
-walk tests 2<sup>n</sup>−1 subsets, the empty one being the odd man out; both were counted by
+[src/calc.c](src/calc.c) walks the subsets by flipping one vertex in or out at a time, which is
+the equation above being evaluated one assignment at a time; `calculate_function` is that
+conjunction of clauses, written out as a loop over the edge list:
+
+```c
+result = result && ((!node_array[r_node->from - 1]) || (!node_array[r_node->to - 1]));
+```
+
+with `sum == 0` above it rejecting the empty set. Every independent set it finds is copied into
+a linked list. The "Number of combinations" line reports 2<sup>n</sup> and the walk tests
+2<sup>n</sup>−1 subsets, the empty one being the odd man out; both were counted by
 instrumenting `decide`.
 
 **The greedy search covers the graph with those sets.** Take the largest independent set, then
@@ -245,7 +327,8 @@ Makefile        added in 2026; the original build was original/mapColoring.dev
 .github/        CI: gcc and clang on Linux, clang on macOS, plus a sanitiser run
 ```
 
-The assignment's write-up was a Word document and is not in this repository.
+The assignment's write-up was a Word document and is not in this repository. The equation,
+both algorithms and the `map.5` example above are translated out of it.
 
 ## Elsewhere
 
